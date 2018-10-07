@@ -15,13 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.beam.examples;
+package fr.marouni.apache.beam.wordcount;
 
-import java.io.IOException;
-import java.util.concurrent.ThreadLocalRandom;
-import org.apache.beam.examples.common.ExampleBigQueryTableOptions;
-import org.apache.beam.examples.common.ExampleOptions;
-import org.apache.beam.examples.common.WriteOneFilePerWindow;
+import fr.marouni.apache.beam.common.DoFns;
+import fr.marouni.apache.beam.common.Transforms;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.io.TextIO;
@@ -39,6 +36,9 @@ import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
+
+import java.io.IOException;
+import java.util.concurrent.ThreadLocalRandom;
 
 
 /**
@@ -146,7 +146,7 @@ public class WindowedWordCount {
    * specification of the input and output files.
    */
   public interface Options extends WordCount.WordCountOptions,
-      ExampleOptions, ExampleBigQueryTableOptions {
+          fr.marouni.apache.beam.common.Options.ExampleOptions, fr.marouni.apache.beam.common.Options.ExampleBigQueryTableOptions {
     @Description("Fixed window duration, in minutes")
     @Default.Integer(WINDOW_SIZE)
     Integer getWindowSize();
@@ -201,7 +201,7 @@ public class WindowedWordCount {
      * Concept #4: Re-use our existing CountWords transform that does not have knowledge of
      * windows over a PCollection containing windowed values.
      */
-    PCollection<KV<String, Long>> wordCounts = windowedWords.apply(new WordCount.CountWords());
+    PCollection<KV<String, Long>> wordCounts = windowedWords.apply(new Transforms.CountWords());
 
     /**
      * Concept #5: Format the results and write to a sharded file partitioned by window, using a
@@ -209,8 +209,8 @@ public class WindowedWordCount {
      * writes must be idempotent, but the details of writing to files is elided here.
      */
     wordCounts
-        .apply(MapElements.via(new WordCount.FormatAsTextFn()))
-        .apply(new WriteOneFilePerWindow(output, options.getNumShards()));
+        .apply(MapElements.via(new DoFns.FormatAsTextFn()))
+        .apply(new Transforms.WriteOneFilePerWindow(output, options.getNumShards()));
 
     PipelineResult result = pipeline.run();
     try {

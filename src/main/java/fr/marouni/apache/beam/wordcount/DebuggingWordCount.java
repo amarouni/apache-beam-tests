@@ -15,11 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.beam.examples;
+package fr.marouni.apache.beam.wordcount;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.regex.Pattern;
+import fr.marouni.apache.beam.common.Transforms;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.metrics.Counter;
@@ -34,6 +32,10 @@ import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Pattern;
 
 
 /**
@@ -137,7 +139,7 @@ public class DebuggingWordCount {
 
     PCollection<KV<String, Long>> filteredWords =
         p.apply("ReadLines", TextIO.read().from(options.getInputFile()))
-         .apply(new WordCount.CountWords())
+         .apply(new Transforms.CountWords())
          .apply(ParDo.of(new FilterTextFn(options.getFilterPattern())));
 
     /**

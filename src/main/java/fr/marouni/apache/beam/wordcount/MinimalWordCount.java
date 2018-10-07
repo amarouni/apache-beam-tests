@@ -15,9 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.beam.examples;
+package fr.marouni.apache.beam.wordcount;
 
-import org.apache.beam.examples.common.ExampleUtils;
+import fr.marouni.apache.beam.common.Utils;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.options.PipelineOptions;
@@ -84,7 +84,7 @@ public class MinimalWordCount {
      .apply("ExtractWords", ParDo.of(new DoFn<String, String>() {
                        @ProcessElement
                        public void processElement(ProcessContext c) {
-                         for (String word : c.element().split(ExampleUtils.TOKENIZER_PATTERN)) {
+                         for (String word : c.element().split(Utils.ExampleUtils.TOKENIZER_PATTERN)) {
                            if (!word.isEmpty()) {
                              c.output(word);
                            }
