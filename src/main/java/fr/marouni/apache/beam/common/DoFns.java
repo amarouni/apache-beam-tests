@@ -50,10 +50,10 @@ public class DoFns {
         }
     }
 
-    public static class ListSum extends DoFn<KV<Integer, Iterable<String>>, KV<Integer, Integer>> {
+    /* public static class ListSum extends DoFn<KV<Integer, Iterable<String>>, KV<Integer, Integer>> {
         @ProcessElement
         public void processElement(@Element KV<Integer, Iterable<String>> input, OutputReceiver<KV<Integer, Integer>> out) {
             out.output(KV.of(input.getKey(), StreamSupport.stream(input.getValue().spliterator(), false).map(s -> s.length()))e);
         }
-    }
+    }*/
 }

@@ -15,34 +15,57 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fr.marouni.apache.beam.avro;
+package fr.marouni.apache.beam.graph;
 
 import fr.marouni.apache.beam.common.GraphVizVisitor;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericRecord;
+import fr.marouni.apache.beam.common.Utils;
 import org.apache.beam.sdk.Pipeline;
-import org.apache.beam.sdk.io.AvroIO;
-import org.apache.beam.sdk.io.FileIO;
-import org.apache.beam.sdk.io.parquet.ParquetIO;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
+import org.apache.beam.sdk.transforms.*;
+import org.apache.beam.sdk.values.KV;
+import org.apache.beam.sdk.values.PCollection;
 
-import java.io.File;
 import java.io.IOException;
+import java.util.*;
 
 
-public class AvroToParquetTest {
+public class GraphVizTest {
 
     public static void main(String[] args) throws IOException {
 
         PipelineOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().create();
         Pipeline p = Pipeline.create(options);
 
-        Schema AVRO_SCHEMA =
-                new Schema.Parser().parse(new File("/home/abbass/dev/datasets/avro/bitcoin/schema.json"));
+        List<String> LINES = Arrays.asList(
+                "AZERTY",
+                "QWERTY");
 
-        p.apply(AvroIO.readGenericRecords(AVRO_SCHEMA).from("/home/abbass/dev/datasets/avro/bitcoin/*.avro"))
-                .apply(FileIO.<GenericRecord>write().via(ParquetIO.sink(AVRO_SCHEMA)).to("/tmp/test_dir"));
+        List<String> EXPECTED_LINES = Arrays.asList(
+                "AZERTY: 1",
+                "QWERTY: 1");
+
+        Create.Values<String> input = Create.of(LINES);
+
+        PCollection<String> output = p
+                .apply(input)
+                .apply("ExtractWords", ParDo.of(new DoFn<String, String>() {
+                    @ProcessElement
+                    public void processElement(ProcessContext c) {
+                        for (String word : c.element().split(Utils.ExampleUtils.TOKENIZER_PATTERN)) {
+                            if (!word.isEmpty()) {
+                                c.output(word);
+                            }
+                        }
+                    }
+                }))
+                .apply(Count.<String>perElement())
+                .apply("FormatResults", MapElements.via(new SimpleFunction<KV<String, Long>, String>() {
+                    @Override
+                    public String apply(KV<String, Long> input) {
+                        return input.getKey() + ": " + input.getValue();
+                    }
+                }));
 
         GraphVizVisitor graphVizVisitor = new GraphVizVisitor(p, "/tmp/mypipeviz");
         graphVizVisitor.writeGraph();
@@ -50,4 +73,5 @@ public class AvroToParquetTest {
         // Run the pipeline.
         p.run().waitUntilFinish();
     }
+
 }

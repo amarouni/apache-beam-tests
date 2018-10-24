@@ -1,5 +1,6 @@
 package fr.marouni.apache.beam.aggregations;
 
+import fr.marouni.apache.beam.common.GraphVizVisitor;
 import fr.marouni.apache.beam.common.Transforms;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.options.PipelineOptions;
@@ -14,7 +15,7 @@ import java.util.List;
 
 public class KVTest {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
         PipelineOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().create();
         Pipeline p = Pipeline.create(options);
@@ -31,6 +32,9 @@ public class KVTest {
                 .apply(new Transforms.KeyAppender());
 
         PAssert.that(collected).containsInAnyOrder(EXPECTED_OUTPUT);
+
+        GraphVizVisitor graphVizVisitor = new GraphVizVisitor(p, "/tmp/mypipeviz");
+        graphVizVisitor.writeGraph();
 
         // Run the pipeline.
         p.run().waitUntilFinish();

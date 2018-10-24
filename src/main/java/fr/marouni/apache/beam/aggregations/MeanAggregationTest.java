@@ -17,7 +17,7 @@ public class MeanAggregationTest {
 
     public static void main(String[] args) {
 
-        PipelineOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().create();
+        /* PipelineOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().create();
         Pipeline p = Pipeline.create(options);
 
         List<String> LINES = Arrays.asList(
@@ -38,6 +38,6 @@ public class MeanAggregationTest {
         PAssert.that(collected).containsInAnyOrder(EXPECTED_OUTPUT);
 
         // Run the pipeline.
-        p.run().waitUntilFinish();
+        p.run().waitUntilFinish(); */
     }
 }
