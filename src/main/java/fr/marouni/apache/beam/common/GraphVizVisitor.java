@@ -1,5 +1,6 @@
 package fr.marouni.apache.beam.common;
 
+import guru.nidi.graphviz.attribute.Color;
 import guru.nidi.graphviz.attribute.RankDir;
 import guru.nidi.graphviz.engine.Format;
 import guru.nidi.graphviz.engine.Graphviz;
@@ -10,9 +11,13 @@ import org.apache.beam.sdk.runners.TransformHierarchy;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static guru.nidi.graphviz.model.Factory.graph;
 import static guru.nidi.graphviz.model.Factory.node;
@@ -21,41 +26,96 @@ import static guru.nidi.graphviz.model.Factory.to;
 public class GraphVizVisitor extends Pipeline.PipelineVisitor.Defaults {
 
     private Graph graph;
-    private Map<String, Node> nodesMap;
     private String graphOutputPath;
+    private Set<BeamNode> beamNodeList;
 
     public GraphVizVisitor(Pipeline pipeline, String graphOutputPath){
-        nodesMap = new LinkedHashMap<>();
-        graph = graph("example1").directed()
-                .graphAttr().with(RankDir.LEFT_TO_RIGHT);
+        graph = graph(pipeline.toString()).strict()
+                .graphAttr().with(RankDir.RIGHT_TO_LEFT);
         this.graphOutputPath = graphOutputPath;
+        this.beamNodeList = new LinkedHashSet<>();
         pipeline.traverseTopologically(this);
     }
 
-    @Override
-    public void visitPrimitiveTransform(TransformHierarchy.Node node) {}
+    /**
+     * Represents a Beam transform with a list of its direct parents
+     */
+    static class BeamNode{
+        String name;
+        List<String> parents;
+
+        BeamNode(String name, List<String> parents) {
+            this.name = name;
+            this.parents = parents;
+        }
+
+        @Override
+        public String toString() {
+            return "BeamNode{" +
+                    "name='" + name + '\'' +
+                    ", parents=" + parents +
+                    '}';
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            BeamNode beamNode = (BeamNode) o;
+            return Objects.equals(name, beamNode.name) &&
+                    Objects.equals(parents, beamNode.parents);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, parents);
+        }
+    }
 
     @Override
     public void leaveCompositeTransform(TransformHierarchy.Node node) {
-        String transformName = node.getFullName().split("/")[0];
-        nodesMap.put(transformName, node(transformName));
+
+        List<String> parents = node.getInputs().values().stream()
+                .map(pValue -> getTransformName(pValue.getName()))
+                .collect(Collectors.toList());
+        beamNodeList.add(new BeamNode(getTransformName(node.getFullName()), parents));
     }
 
     public void writeGraph() throws IOException {
-        Iterator<Node> iterator = nodesMap.values().iterator();
+        Map<String, Node> tempMappings = new LinkedHashMap<>();
 
-        Node source = null;
-        if(iterator.hasNext()) {
-            source = iterator.next();
+        for(BeamNode beamNode : beamNodeList){
+
+            Node node = getNode(beamNode);
+            tempMappings.put(beamNode.name, node);
+
+            for(String parent : beamNode.parents){
+                graph = graph
+                        .with(node.link(to(tempMappings.get(parent))));
+            }
         }
 
-        while (iterator.hasNext()){
-            Node target = iterator.next();
-            graph = graph
-                    .with(source.link(to(target)));
-            source = target;
-
-        }
         Graphviz.fromGraph(graph).render(Format.PNG).toFile(new File(graphOutputPath));
+    }
+
+    /**
+     * Create nidi Node from BeamNode
+     */
+    private Node getNode(BeamNode beamNode){
+        if(beamNode.parents.isEmpty()){
+            // The node is a source one
+            return node(beamNode.name).with(Color.GREEN);
+        } else {
+            return node(beamNode.name);
+        }
+    }
+
+    /**
+     * Get a simplified name from Beam Internal transform name
+     * @param beamInternalName ".../.../..."
+     * @return Name
+     */
+    private String getTransformName(String beamInternalName) {
+        return beamInternalName.split("/")[0];
     }
 }

@@ -41,13 +41,10 @@ public class GraphVizTest {
                 "AZERTY",
                 "QWERTY");
 
-        List<String> EXPECTED_LINES = Arrays.asList(
-                "AZERTY: 1",
-                "QWERTY: 1");
 
         Create.Values<String> input = Create.of(LINES);
 
-        PCollection<String> output = p
+        PCollection<KV<String, Long>> extractedWords = p
                 .apply(input)
                 .apply("ExtractWords", ParDo.of(new DoFn<String, String>() {
                     @ProcessElement
@@ -59,13 +56,35 @@ public class GraphVizTest {
                         }
                     }
                 }))
-                .apply(Count.<String>perElement())
-                .apply("FormatResults", MapElements.via(new SimpleFunction<KV<String, Long>, String>() {
+                .apply(Count.<String>perElement());
+
+        // First branch
+        extractedWords
+                .apply("FormatResults_001", MapElements.via(new SimpleFunction<KV<String, Long>, String>() {
                     @Override
                     public String apply(KV<String, Long> input) {
                         return input.getKey() + ": " + input.getValue();
                     }
-                }));
+                })).apply("FormatResults_XXX_001", MapElements.via(new SimpleFunction<String, String>() {
+            @Override
+            public String apply(String input) {
+                return input;
+            }
+        }));
+
+        // Second branch
+        extractedWords
+                .apply("FormatResults_002", MapElements.via(new SimpleFunction<KV<String, Long>, String>() {
+                    @Override
+                    public String apply(KV<String, Long> input) {
+                        return input.getKey() + ": " + input.getValue();
+                    }
+                })).apply("FormatResults_XXX_002", MapElements.via(new SimpleFunction<String, String>() {
+            @Override
+            public String apply(String input) {
+                return input;
+            }
+        }));
 
         GraphVizVisitor graphVizVisitor = new GraphVizVisitor(p, "/tmp/mypipeviz");
         graphVizVisitor.writeGraph();
