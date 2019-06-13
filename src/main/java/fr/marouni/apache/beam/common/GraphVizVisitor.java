@@ -4,6 +4,7 @@ import guru.nidi.graphviz.attribute.Color;
 import guru.nidi.graphviz.attribute.RankDir;
 import guru.nidi.graphviz.engine.Format;
 import guru.nidi.graphviz.engine.Graphviz;
+import guru.nidi.graphviz.engine.GraphvizV8Engine;
 import guru.nidi.graphviz.model.Graph;
 import guru.nidi.graphviz.model.Node;
 import org.apache.beam.sdk.Pipeline;
@@ -23,24 +24,37 @@ import static guru.nidi.graphviz.model.Factory.graph;
 import static guru.nidi.graphviz.model.Factory.node;
 import static guru.nidi.graphviz.model.Factory.to;
 
+/**
+ * Use Apache Beam Pipeline visitor to generate a Graphviz representation of
+ * the Beam pipeline
+ */
 public class GraphVizVisitor extends Pipeline.PipelineVisitor.Defaults {
 
     private Graph graph;
     private String graphOutputPath;
     private Set<BeamNode> beamNodeList;
 
+    /**
+     *
+     * @param pipeline Beam pipeline
+     * @param graphOutputPath Path to generated PNG output
+     */
     public GraphVizVisitor(Pipeline pipeline, String graphOutputPath){
+        // Use the JS V8 engine
+        Graphviz.useEngine(new GraphvizV8Engine());
+
         graph = graph(pipeline.toString()).strict()
                 .graphAttr().with(RankDir.RIGHT_TO_LEFT);
         this.graphOutputPath = graphOutputPath;
         this.beamNodeList = new LinkedHashSet<>();
+
         pipeline.traverseTopologically(this);
     }
 
     /**
      * Represents a Beam transform with a list of its direct parents
      */
-    static class BeamNode{
+    private static class BeamNode {
         String name;
         List<String> parents;
 
